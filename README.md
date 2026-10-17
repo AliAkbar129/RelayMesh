@@ -29,6 +29,8 @@ Local acceptance occurs after a committed outbox insert. Central insertion and d
 
 `evidence/http_recovery.json` records an executed HTTP experiment with a separate central server process. It is one single-host recovery scenario, not an availability SLA. Client reopen models restart; it is not an OS-level kill experiment. Tests cover reopen, identities, duplicate content, transaction rollback and conflicting edits.
 
-Remaining: baseline comparison against synchronous/in-memory delivery, repeated fault schedules, OS-kill tests, pull cursors, tombstones, snapshots, PostgreSQL, Go implementation if warranted, device registration, deployment hardening, and throughput/load characterization. No exactly-once or disk-destruction guarantee.
+Executed a five-trial, 600-event HTTP recovery matrix with real client/server SIGKILL checkpoints, concurrent retries, full payload matching and SQLite integrity checks. See [protocol](experiments/PROTOCOL.md) and [raw results](evidence/reliability_matrix.json). Simple volatile-queue and synchronous-only references are explicitly distinguished from production competitors.
+
+Remaining: arbitrary in-flight crash schedules, realistic load/baseline comparisons, pull cursors, tombstones, snapshots, PostgreSQL, Go implementation if warranted, device registration, deployment hardening, and throughput/load characterization. No exactly-once or disk-destruction guarantee.
 
 Original reference implementation with AI assistance. Uses Python, SQLite, FastAPI, Pydantic and HTTPX; their licenses remain applicable. No external source application was copied or rebranded.

@@ -21,3 +21,13 @@ def test_concurrent_edit_preserved_and_stale_resolution_rejected(tmp_path):
     with pytest.raises(ValueError):c.resolve(conflict['conflict_id'],{'title':'merged'},0)
     assert c.resolve(conflict['conflict_id'],{'title':'merged'},1)['revision']==2
     with pytest.raises(ValueError):c.resolve(conflict['conflict_id'],{},2)
+
+def test_actual_concurrent_order_edits(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    c=Central(tmp_path/'central')
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results=list(pool.map(lambda i:c.edit('shared',{'writer':i},0),range(20)))
+    assert sum('revision' in r for r in results)==1
+    assert sum('conflict_id' in r for r in results)==19
+    state=c.snapshot()
+    assert len(state['orders'])==1 and len(state['conflicts'])==19
