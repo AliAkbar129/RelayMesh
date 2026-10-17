@@ -1,0 +1,25 @@
+{
+  "scenario": "HTTP commit-before-reply with durable client reopen",
+  "attempted": 60,
+  "locally_accepted": 60,
+  "centrally_committed": 60,
+  "pending": 0,
+  "accepted_event_loss": 0,
+  "duration_seconds": 0.08238779499970406,
+  "trace": [
+    {
+      "phase": "offline_local_acceptance",
+      "pending": 60
+    },
+    {
+      "phase": "reply_lost_after_commit",
+      "pending": 20
+    }
+  ],
+  "limitations": [
+    "Single host",
+    "Client reopen is not an OS-kill experiment",
+    "No disk-loss guarantee",
+    "No multiwriter CRDT or cursor reconciliation yet"
+  ]
+}
