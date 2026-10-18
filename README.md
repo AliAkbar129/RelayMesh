@@ -1,6 +1,6 @@
 # RelayMesh — executable synchronization reference
 
-A Python first milestone for a distributed-systems portfolio project. It is not the complete proposed Go/PostgreSQL system or a production synchronization service.
+A Python/SQLite synchronization reference with an executable recovery study. It is not the complete proposed Go/PostgreSQL system or a production synchronization service.
 
 ## Run
 
@@ -34,3 +34,8 @@ Executed a five-trial, 600-event HTTP recovery matrix with real client/server SI
 Remaining: arbitrary in-flight crash schedules, realistic load/baseline comparisons, pull cursors, tombstones, snapshots, PostgreSQL, Go implementation if warranted, device registration, deployment hardening, and throughput/load characterization. No exactly-once or disk-destruction guarantee.
 
 Original reference implementation with AI assistance. Uses Python, SQLite, FastAPI, Pydantic and HTTPX; their licenses remain applicable. No external source application was copied or rebranded.
+
+
+## Finalization verification
+
+[Passing CI](https://github.com/AliAkbar129/RelayMesh/actions/runs/39147558455) covers 11 regression tests. SQLite connections now close deterministically; malformed or unrelated acknowledgments preserve pending outbox entries. The complete five-seed recovery matrix was rerun after these changes: 600 unique events recovered, no pending events or payload mismatches, and all integrity checks passed. See [final rerun](evidence/reliability_finalization.json). This is checkpoint-based, single-host evidence, not arbitrary crash or infrastructure-failure coverage.
