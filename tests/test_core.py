@@ -31,3 +31,28 @@ def test_actual_concurrent_order_edits(tmp_path):
     assert sum('conflict_id' in r for r in results)==19
     state=c.snapshot()
     assert len(state['orders'])==1 and len(state['conflicts'])==19
+
+
+@pytest.mark.parametrize('body', [{}, {'accepted': 'bad'}, {'accepted': [None]}, {'accepted': ['unknown']}, []])
+def test_invalid_ack_never_discards_pending(tmp_path, monkeypatch, body):
+    import core
+    class Reply:
+        def raise_for_status(self): pass
+        def json(self): return body
+    monkeypatch.setattr(core.httpx, 'post', lambda *a, **kw: Reply())
+    box=Outbox(tmp_path/'outbox','a');event=box.enqueue({'value':1})
+    with pytest.raises(ValueError): box.sync('http://central','key')
+    assert box.pending()==[event]
+
+def test_partial_ack_and_duplicate_ack(tmp_path, monkeypatch):
+    import core
+    box=Outbox(tmp_path/'outbox','a');a=box.enqueue({'v':1});b=box.enqueue({'v':2})
+    class Reply:
+        def raise_for_status(self): pass
+        def json(self): return {'accepted':[a['id'],a['id']]}
+    monkeypatch.setattr(core.httpx,'post',lambda *args,**kw:Reply())
+    with pytest.raises(ValueError):box.sync('http://central','key')
+    assert box.count()==2
+    Reply.json=lambda self:{'accepted':[a['id']]}
+    assert box.sync('http://central','key')==1
+    assert box.pending()==[b]

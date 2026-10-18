@@ -1,13 +1,20 @@
 """Durable local outbox and central deduplication reference implementation."""
 import hashlib,json,sqlite3,uuid
 from pathlib import Path
+from contextlib import contextmanager
 import httpx
 
 def canonical(value):return json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False)
+@contextmanager
 def connect(path):
     Path(path).parent.mkdir(parents=True,exist_ok=True)
     con=sqlite3.connect(path,timeout=10);con.row_factory=sqlite3.Row
-    con.execute('PRAGMA journal_mode=WAL');con.execute('PRAGMA synchronous=FULL');return con
+    con.execute('PRAGMA journal_mode=WAL');con.execute('PRAGMA synchronous=FULL')
+    try:
+        with con:
+            yield con
+    finally:
+        con.close()
 
 class Outbox:
     def __init__(self,path,station):
@@ -32,7 +39,11 @@ class Outbox:
         batch=self.pending()
         if not batch:return 0
         response=httpx.post(url+'/sync/push',json={'events':batch},headers={'X-Station-Key':key},timeout=5)
-        response.raise_for_status();received=response.json()['accepted']
+        response.raise_for_status()
+        body=response.json()
+        received=body.get('accepted') if isinstance(body,dict) else None
+        if not isinstance(received,list) or any(not isinstance(x,str) for x in received) or len(received)!=len(set(received)):
+            raise ValueError('Malformed acknowledgement')
         if lose_reply:raise TimeoutError('Injected lost reply after central commit')
         expected={r['id'] for r in batch}
         if not set(received)<=expected:raise ValueError('Unknown acknowledgement IDs')
@@ -83,3 +94,4 @@ class Central:
             orders=[dict(r) for r in c.execute('SELECT * FROM orders')]
             conflicts=[dict(r) for r in c.execute('SELECT * FROM conflicts ORDER BY id DESC')]
             return {'stations':counts,'orders':orders,'conflicts':conflicts,'total_events':sum(r['events'] for r in counts)}
+
